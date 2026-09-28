@@ -69,6 +69,7 @@ const updateUser = async (req, res) => {
     if (salary !== undefined) user.salary = salary;
     if (address) user.address = address;
     if (dateOfJoining) user.dateOfJoining = dateOfJoining;
+    if (req.body.pin) user.pin = req.body.pin;
 
     await user.save();
     res.status(200).json({ message: "User updated", user });

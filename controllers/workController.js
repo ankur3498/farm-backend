@@ -156,22 +156,30 @@ const assignTask = async (req, res) => {
 };
 
 const autoCreateTodaysTasks = async (userId, day) => {
-  const rules = await WorkRecurring.find({ assignedTo: userId, isActive: true });
-  for (const rule of rules) {
-    await WorkTask.findOneAndUpdate(
-      { assignedTo: userId, category: rule.category, date: day },
-      {
-        $setOnInsert: {
-          assignedTo: userId,
-          category: rule.category,
-          date: day,
-          source: "auto",
-          assignedBy: null,
-          notes: rule.notes || "",
-        },
-      },
-      { upsert: true, setDefaultsOnInsert: true }
-    );
+  try {
+    const rules = await WorkRecurring.find({ assignedTo: userId, isActive: true });
+    for (const rule of rules) {
+      try {
+        await WorkTask.findOneAndUpdate(
+          { assignedTo: userId, category: rule.category, date: day },
+          {
+            $setOnInsert: {
+              assignedTo: userId,
+              category: rule.category,
+              date: day,
+              source: "auto",
+              assignedBy: null,
+              notes: rule.notes || "",
+            },
+          },
+          { upsert: true, setDefaultsOnInsert: true }
+        );
+      } catch (ruleErr) {
+        if (ruleErr.code !== 11000) console.error("Auto task creation warning:", ruleErr.message);
+      }
+    }
+  } catch (err) {
+    console.error("autoCreateTodaysTasks error:", err.message);
   }
 };
 
@@ -183,9 +191,9 @@ const getMyTasks = async (req, res) => {
 
     // Only auto-create for today — no point backfilling past/future days
     if (isToday) {
-      await autoCreateTodaysTasks(req.user._id, day);
-      await generateScheduleTasksForUserToday(req.user._id, day);
-      await generateAssetInspections(day, { onlyUserId: req.user._id });
+      try { await autoCreateTodaysTasks(req.user._id, day); } catch (e) {}
+      try { await generateScheduleTasksForUserToday(req.user._id, day); } catch (e) {}
+      try { await generateAssetInspections(day, { onlyUserId: req.user._id }); } catch (e) {}
     }
 
     const tasks = await WorkTask.find({ assignedTo: req.user._id, date: day }).sort({ createdAt: 1 });
@@ -242,6 +250,9 @@ const completeTask = async (req, res) => {
     task.status = "submitted";
     task.completedAt = new Date();
     task.review = { status: "pending", reviewedBy: undefined, reviewedAt: undefined, note: "" };
+    if (req.body.sampleWeight) {
+      task.sampleWeight = req.body.sampleWeight;
+    }
 
     // Optional — if this task consumed feed/medicine, deduct it from stock now
     const { stockItemId, quantityUsed } = req.body;
@@ -293,6 +304,9 @@ const resubmitTask = async (req, res) => {
     task.status = "submitted";
     task.completedAt = new Date();
     task.review = { status: "pending", reviewedBy: undefined, reviewedAt: undefined, note: "" };
+    if (req.body.sampleWeight) {
+      task.sampleWeight = req.body.sampleWeight;
+    }
 
     const { stockItemId, quantityUsed } = req.body;
     if (stockItemId && quantityUsed) {

@@ -10,6 +10,9 @@ const workRoutes = require("./routes/workRoutes");
 const scheduleRoutes = require("./routes/scheduleRoutes");
 const inventoryRoutes = require("./routes/inventoryRoutes");
 const assetRoutes = require("./routes/assetRoutes");
+const poultryRoutes = require("./routes/poultryRoutes");
+const goatRoutes = require("./routes/goatRoutes");
+const animalRoutes = require("./routes/animalRoutes");
 const startScheduledJobs = require("./utils/scheduledJobs");
 
 connectDB();
@@ -31,6 +34,9 @@ app.use("/api/work", workRoutes);
 app.use("/api/schedule", scheduleRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/assets", assetRoutes);
+app.use("/api/poultry", poultryRoutes);
+app.use("/api/goat", goatRoutes);
+app.use("/api/animals", animalRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });

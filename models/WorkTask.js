@@ -32,6 +32,8 @@ const workTaskSchema = new mongoose.Schema(
       videoUrl: { type: String },
     },
 
+    sampleWeight: { type: String, default: "" },
+
     // Optional — set when completing a task that consumed stock (e.g. feed).
     // Filled in by completeTask/resubmitTask if stockItemId+quantityUsed are sent.
     stockUsage: {
@@ -54,4 +56,7 @@ const workTaskSchema = new mongoose.Schema(
 // category-per-day rule still holds for manual/auto tasks exactly as before.
 workTaskSchema.index({ assignedTo: 1, category: 1, date: 1, timeLabel: 1 }, { unique: true });
 
-module.exports = mongoose.model("WorkTask", workTaskSchema);
+const WorkTask = mongoose.model("WorkTask", workTaskSchema);
+WorkTask.syncIndexes().catch((err) => console.log("WorkTask index sync warning:", err.message));
+
+module.exports = WorkTask;

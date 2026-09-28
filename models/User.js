@@ -67,6 +67,11 @@ const userSchema = new mongoose.Schema(
       ref: "User",
       default: null,
     },
+    // PIN login fields (e.g. 4-digit PIN set during staff creation)
+    pin: {
+      type: String,
+      select: false,
+    },
     // OTP login fields
     otpHash: {
       type: String,
@@ -85,11 +90,20 @@ userSchema.pre("save", async function () {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
   }
+  if (this.isModified("pin") && this.pin) {
+    const salt = await bcrypt.genSalt(10);
+    this.pin = await bcrypt.hash(this.pin, salt);
+  }
 });
 
 userSchema.methods.matchPassword = async function (enteredPassword) {
   if (!this.password) return false;
   return bcrypt.compare(enteredPassword, this.password);
+};
+
+userSchema.methods.matchPin = async function (enteredPin) {
+  if (!this.pin) return false;
+  return bcrypt.compare(enteredPin, this.pin);
 };
 
 userSchema.methods.matchOtp = async function (enteredOtp) {

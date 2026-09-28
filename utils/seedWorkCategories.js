@@ -4,7 +4,15 @@ const mongoose = require("mongoose");
 const connectDB = require("../config/db");
 const WorkCategory = require("../models/WorkCategory");
 
-const DEFAULTS = ["Cleaning", "Milking", "Cropping", "Feeding", "Medication"];
+const DEFAULTS = [
+  "Cleaning",
+  "Milking",
+  "Cropping",
+  "Feeding",
+  "Medication",
+  "Goat Batch Weight",
+  "Hen/Chicken Batch Weight",
+];
 
 const seed = async () => {
   await connectDB();

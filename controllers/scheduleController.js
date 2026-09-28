@@ -228,17 +228,25 @@ const generateSchedule = async (day, { onlyUserId, actorId } = {}) => {
           continue;
         }
 
-        await WorkTask.create({
-          category: entry.description,
-          assignedTo: staff,
-          assignedBy: actorId || null,
-          source: "schedule",
-          date: day,
-          session: session.name,
-          timeLabel,
-          track: entry.track.name,
-        });
-        created++;
+        try {
+          await WorkTask.create({
+            category: entry.description,
+            assignedTo: staff,
+            assignedBy: actorId || null,
+            source: "schedule",
+            date: day,
+            session: session.name,
+            timeLabel,
+            track: entry.track.name,
+          });
+          created++;
+        } catch (createErr) {
+          if (createErr.code === 11000) {
+            skippedExisting++;
+          } else {
+            throw createErr;
+          }
+        }
       }
     }
   }

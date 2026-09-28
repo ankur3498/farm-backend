@@ -38,6 +38,20 @@ const leaveRequestSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const advanceSalarySchema = new mongoose.Schema(
+  {
+    requested: { type: Boolean, default: false },
+    requestedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    amount: { type: Number, default: 0 },
+    reason: { type: String, default: "" },
+    status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
+    reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    reviewedAt: { type: Date },
+    reviewNote: { type: String, default: "" },
+  },
+  { _id: false }
+);
+
 const attendanceSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
@@ -52,6 +66,7 @@ const attendanceSchema = new mongoose.Schema(
     },
     editRequest: { type: editRequestSchema, default: () => ({}) },
     leaveRequest: { type: leaveRequestSchema, default: () => ({}) },
+    advanceSalaryRequest: { type: advanceSalarySchema, default: () => ({}) },
   },
   { timestamps: true }
 );

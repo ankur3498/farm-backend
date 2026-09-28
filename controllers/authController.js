@@ -123,6 +123,7 @@ const createUser = async (req, res) => {
       salary,
       address,
       dateOfJoining,
+      pin: req.body.pin || "1234",
       createdBy: req.user._id,
     });
 
@@ -142,10 +143,47 @@ const createUser = async (req, res) => {
   }
 };
 
+// @route   POST /api/auth/login-pin
+// @access  Public
+// body: { mobile, pin }
+const loginWithPin = async (req, res) => {
+  try {
+    const { mobile, pin } = req.body;
+    if (!mobile || !pin) {
+      return res.status(400).json({ message: "Mobile number and PIN are required" });
+    }
+
+    const user = await User.findOne({ mobile }).select("+pin");
+    if (!user) {
+      return res.status(404).json({ message: "No account found with this mobile number" });
+    }
+
+    if (!user.isActive) {
+      return res.status(403).json({ message: "This account has been deactivated" });
+    }
+
+    const isValid = await user.matchPin(pin);
+    if (!isValid) {
+      return res.status(401).json({ message: "Invalid PIN" });
+    }
+
+    res.status(200).json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      mobile: user.mobile,
+      role: user.role,
+      token: generateToken(user._id),
+    });
+  } catch (error) {
+    res.status(500).json({ message: "PIN login failed", error: error.message });
+  }
+};
+
 // @route   GET /api/auth/me
 // @access  Private
 const getMe = async (req, res) => {
   res.status(200).json(req.user);
 };
 
-module.exports = { requestOtp, verifyOtp, createUser, getMe };
+module.exports = { requestOtp, verifyOtp, loginWithPin, createUser, getMe };

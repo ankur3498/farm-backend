@@ -128,7 +128,6 @@ const adminUpdateAttendance = async (req, res) => {
   }
 };
 
-
 const adminMarkAttendance = async (req, res) => {
   try {
     const { userId, date, timeIn, timeOut, status } = req.body;
@@ -287,6 +286,69 @@ const reviewLeaveRequest = async (req, res) => {
   }
 };
 
+const applyAdvanceSalary = async (req, res) => {
+  try {
+    const { amount, reason, date } = req.body;
+    if (!amount || Number(amount) <= 0) {
+      return res.status(400).json({ message: "Valid advance salary amount is required" });
+    }
+    if (!reason) {
+      return res.status(400).json({ message: "Reason for advance salary is required" });
+    }
+
+    const day = startOfDay(date ? new Date(date) : new Date());
+    let record = await Attendance.findOne({ user: req.user._id, date: day });
+
+    if (record?.advanceSalaryRequest?.requested && record.advanceSalaryRequest.status === "pending") {
+      return res.status(409).json({ message: "An advance salary request for this date is already pending" });
+    }
+
+    const advanceSalaryRequest = {
+      requested: true,
+      requestedBy: req.user._id,
+      amount: Number(amount),
+      reason,
+      status: "pending",
+    };
+
+    if (record) {
+      record.advanceSalaryRequest = advanceSalaryRequest;
+      await record.save();
+    } else {
+      record = await Attendance.create({ user: req.user._id, date: day, advanceSalaryRequest });
+    }
+
+    res.status(200).json({ message: "Advance salary request submitted for approval", attendance: record });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to submit advance salary request", error: error.message });
+  }
+};
+
+const reviewAdvanceSalary = async (req, res) => {
+  try {
+    const { action, note } = req.body;
+    if (!["approve", "reject"].includes(action)) {
+      return res.status(400).json({ message: "action must be 'approve' or 'reject'" });
+    }
+
+    const record = await Attendance.findById(req.params.id);
+    if (!record) return res.status(404).json({ message: "Attendance record not found" });
+    if (!record.advanceSalaryRequest?.requested || record.advanceSalaryRequest.status !== "pending") {
+      return res.status(400).json({ message: "No pending advance salary request on this record" });
+    }
+
+    record.advanceSalaryRequest.status = action === "approve" ? "approved" : "rejected";
+    record.advanceSalaryRequest.reviewedBy = req.user._id;
+    record.advanceSalaryRequest.reviewedAt = new Date();
+    record.advanceSalaryRequest.reviewNote = note || "";
+
+    await record.save();
+    res.status(200).json({ message: `Advance salary request ${action}d`, attendance: record });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to review advance salary request", error: error.message });
+  }
+};
+
 const getSalarySummary = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -317,19 +379,38 @@ const getSalarySummary = async (req, res) => {
     const leaveDays = records.filter((r) => r.status === "leave").length;
     const absentDays = Math.max(0, countedDays - presentDays - leaveDays);
 
-    const perDayRate = user.salary / daysInMonth;
-    const deductibleAbsences = Math.max(0, absentDays - FREE_LEAVES_PER_MONTH);
-    const deduction = Math.round(deductibleAbsences * perDayRate * 100) / 100;
-    const netSalary = Math.round((user.salary - deduction) * 100) / 100;
+    const advanceSalaryTotal = records
+      .filter((r) => r.advanceSalaryRequest?.requested && r.advanceSalaryRequest.status === "approved")
+      .reduce((sum, r) => sum + (r.advanceSalaryRequest.amount || 0), 0);
+
+    const isDailyWorker = user.role === "temporary_worker";
+    let perDayRate, deduction, deductibleAbsences, grossSalary, netSalary;
+
+    if (isDailyWorker) {
+      perDayRate = user.salary;
+      deductibleAbsences = 0;
+      deduction = 0;
+      grossSalary = Math.round(presentDays * perDayRate * 100) / 100;
+      netSalary = Math.max(0, Math.round((grossSalary - advanceSalaryTotal) * 100) / 100);
+    } else {
+      perDayRate = user.salary / daysInMonth;
+      deductibleAbsences = Math.max(0, absentDays - FREE_LEAVES_PER_MONTH);
+      deduction = Math.round(deductibleAbsences * perDayRate * 100) / 100;
+      grossSalary = user.salary;
+      netSalary = Math.max(0, Math.round((user.salary - deduction - advanceSalaryTotal) * 100) / 100);
+    }
 
     res.status(200).json({
       user: { _id: user._id, name: user.name, role: user.role, monthlySalary: user.salary },
       period: { month: m, year: y, daysInMonth, countedDays },
       attendance: { presentDays, leaveDays, absentDays },
       freeLeavesPerMonth: FREE_LEAVES_PER_MONTH,
+      isDailyWorker,
       deductibleAbsentDays: deductibleAbsences,
       perDayRate: Math.round(perDayRate * 100) / 100,
+      grossSalary,
       deduction,
+      advanceSalaryTotal,
       netSalary,
     });
   } catch (error) {
@@ -348,5 +429,7 @@ module.exports = {
   reviewEditRequest,
   applyLeave,
   reviewLeaveRequest,
+  applyAdvanceSalary,
+  reviewAdvanceSalary,
   getSalarySummary,
 };
