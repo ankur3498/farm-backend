@@ -1,6 +1,6 @@
 const Attendance = require("../models/Attendance");
 const User = require("../models/User");
-const reverseGeocode = require("../utils/geoCode");
+const reverseGeocode = require("../utils/geocode");
 
 const startOfDay = (d = new Date()) => {
   const date = new Date(d);
