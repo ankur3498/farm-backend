@@ -11,9 +11,9 @@ const { protect, authorize } = require("../middleware/auth");
 
 router.use(protect); // every route below requires login
 
-// View — admin AND manager_operations (needed for Team Attendance, Work Management staff pickers, etc.)
-router.get("/", authorize("admin", "manager_operations"), getAllUsers);
-router.get("/:id", authorize("admin", "manager_operations"), getUserById);
+// View — open to all logged in users so staff pickers in Field Patches, Work, Expenses work seamlessly
+router.get("/", getAllUsers);
+router.get("/:id", getUserById);
 
 // Edit/deactivate/activate — admin only
 router.put("/:id", authorize("admin"), updateUser);

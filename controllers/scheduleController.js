@@ -57,7 +57,10 @@ const updateSession = async (req, res) => {
 // @route   GET /api/schedule/tracks
 const getTracks = async (req, res) => {
   try {
-    const tracks = await ScheduleTrack.find().populate("defaultAssignedTo", "name role").sort({ order: 1 });
+    const filter = {};
+    if (req.query.sessionId) filter.session = req.query.sessionId;
+
+    const tracks = await ScheduleTrack.find(filter).populate("defaultAssignedTo", "name role").sort({ order: 1 });
     res.status(200).json({ tracks });
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch tracks", error: error.message });
@@ -65,14 +68,16 @@ const getTracks = async (req, res) => {
 };
 
 // @route   POST /api/schedule/tracks
-// body: { name, defaultAssignedTo, order }
+// body: { session, name, defaultAssignedTo, order }
 const createTrack = async (req, res) => {
   try {
-    const { name, defaultAssignedTo, order } = req.body;
+    const { session, name, defaultAssignedTo, order } = req.body;
     if (!name) return res.status(400).json({ message: "Track name is required" });
 
-    const count = await ScheduleTrack.countDocuments();
+    const filter = session ? { session } : {};
+    const count = await ScheduleTrack.countDocuments(filter);
     const track = await ScheduleTrack.create({
+      session: session || null,
       name,
       defaultAssignedTo: defaultAssignedTo || null,
       order: order ?? count,

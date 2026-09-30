@@ -5,6 +5,8 @@ const uploadBufferToCloudinary = require("../utils/uploadToCloudinary");
 const { generateScheduleTasksForUserToday } = require("./scheduleController");
 const { deductStockForTask } = require("./inventoryController");
 const { generateAssetInspections } = require("./assetController");
+const { generatePoultryTasksForUserToday } = require("./poultryController");
+const { generateFieldPatchTasksForUserToday } = require("./fieldPatchController");
 const Asset = require("../models/Asset");
 
 const startOfDay = (d = new Date()) => {
@@ -194,6 +196,8 @@ const getMyTasks = async (req, res) => {
       try { await autoCreateTodaysTasks(req.user._id, day); } catch (e) {}
       try { await generateScheduleTasksForUserToday(req.user._id, day); } catch (e) {}
       try { await generateAssetInspections(day, { onlyUserId: req.user._id }); } catch (e) {}
+      try { await generatePoultryTasksForUserToday(req.user._id, day); } catch (e) {}
+      try { await generateFieldPatchTasksForUserToday(req.user._id, day); } catch (e) {}
     }
 
     const tasks = await WorkTask.find({ assignedTo: req.user._id, date: day }).sort({ createdAt: 1 });

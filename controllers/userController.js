@@ -5,12 +5,16 @@ const User = require("../models/User");
 // Optional query: ?role=worker  or  ?isActive=true
 const getAllUsers = async (req, res) => {
   try {
-    const filter = { role: { $ne: "admin" } }; // admin apne aap ko list me nahi dikhayega
+    const filter = {};
+
+    if (req.query.includeAdmin !== "true" && !req.query.role) {
+      filter.role = { $ne: "admin" };
+    }
 
     if (req.query.role) filter.role = req.query.role;
     if (req.query.isActive !== undefined) filter.isActive = req.query.isActive === "true";
 
-    const users = await User.find(filter).sort({ createdAt: -1 });
+    const users = await User.find(filter).select("-pin").sort({ name: 1 });
     res.status(200).json({ count: users.length, users });
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch users", error: error.message });

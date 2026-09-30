@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const scheduleTrackSchema = new mongoose.Schema(
   {
-    session: { type: mongoose.Schema.Types.ObjectId, ref: "ScheduleSession", required: true },
+    session: { type: mongoose.Schema.Types.ObjectId, ref: "ScheduleSession", default: null },
     name: { type: String, required: true, trim: true }, // e.g. "Worker 1", "Manager"
     order: { type: Number, default: 0 },
     // Who currently fills this track. Editable any time (e.g. if someone is

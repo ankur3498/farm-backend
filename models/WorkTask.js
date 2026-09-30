@@ -12,6 +12,9 @@ const workTaskSchema = new mongoose.Schema(
     // Present only for weekly asset-inspection tasks
     relatedAsset: { type: mongoose.Schema.Types.ObjectId, ref: "Asset", default: null },
 
+    // Present only for field-patch tasks
+    relatedFieldPatch: { type: mongoose.Schema.Types.ObjectId, ref: "FieldPatch", default: null },
+
     // Present only for tasks generated from the Daily Schedule module —
     // lets the UI show "Morning Milking · 7:00–7:10 · Worker 1" context.
     session: { type: String, default: "" },
