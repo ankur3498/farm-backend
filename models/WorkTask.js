@@ -36,6 +36,7 @@ const workTaskSchema = new mongoose.Schema(
     },
 
     sampleWeight: { type: String, default: "" },
+    userRemark: { type: String, default: "" },
 
     // Optional — set when completing a task that consumed stock (e.g. feed).
     // Filled in by completeTask/resubmitTask if stockItemId+quantityUsed are sent.

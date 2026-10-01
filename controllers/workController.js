@@ -118,7 +118,7 @@ const assignTask = async (req, res) => {
     const staffIds = req.body.assignedTo
       ? Array.isArray(req.body.assignedTo) ? req.body.assignedTo : [req.body.assignedTo]
       : [];
-    const { date, notes } = req.body;
+    const { date, notes, session, timeLabel, track } = req.body;
 
     if (categories.length === 0 || staffIds.length === 0 || !date) {
       return res.status(400).json({ message: "At least one category, one staff member, and a date are required" });
@@ -130,7 +130,12 @@ const assignTask = async (req, res) => {
 
     for (const category of categories) {
       for (const assignedTo of staffIds) {
-        const existing = await WorkTask.findOne({ assignedTo, category, date: day });
+        const existing = await WorkTask.findOne({
+          assignedTo,
+          category,
+          date: day,
+          timeLabel: timeLabel || "",
+        });
         if (existing) {
           skipped.push({ category, assignedTo });
           continue;
@@ -139,9 +144,12 @@ const assignTask = async (req, res) => {
           category,
           assignedTo,
           assignedBy: req.user._id,
-          source: "manual",
+          source: timeLabel || session ? "schedule" : "manual",
           date: day,
           notes: notes || "",
+          session: session || "",
+          timeLabel: timeLabel || "",
+          track: track || "",
         });
         created.push(task);
       }
@@ -257,6 +265,9 @@ const completeTask = async (req, res) => {
     if (req.body.sampleWeight) {
       task.sampleWeight = req.body.sampleWeight;
     }
+    if (req.body.userRemark || req.body.remarks) {
+      task.userRemark = req.body.userRemark || req.body.remarks;
+    }
 
     // Optional — if this task consumed feed/medicine, deduct it from stock now
     const { stockItemId, quantityUsed } = req.body;
@@ -310,6 +321,9 @@ const resubmitTask = async (req, res) => {
     task.review = { status: "pending", reviewedBy: undefined, reviewedAt: undefined, note: "" };
     if (req.body.sampleWeight) {
       task.sampleWeight = req.body.sampleWeight;
+    }
+    if (req.body.userRemark || req.body.remarks) {
+      task.userRemark = req.body.userRemark || req.body.remarks;
     }
 
     const { stockItemId, quantityUsed } = req.body;
@@ -386,6 +400,16 @@ const reviewTask = async (req, res) => {
   }
 };
 
+const deleteTask = async (req, res) => {
+  try {
+    const task = await WorkTask.findByIdAndDelete(req.params.id);
+    if (!task) return res.status(404).json({ message: "Task not found" });
+    res.status(200).json({ message: "Task removed successfully", task });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to delete task", error: error.message });
+  }
+};
+
 module.exports = {
   getCategories,
   addCategory,
@@ -400,4 +424,5 @@ module.exports = {
   resubmitTask,
   getAllTasks,
   reviewTask,
+  deleteTask,
 };

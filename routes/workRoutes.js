@@ -14,6 +14,7 @@ const {
   resubmitTask,
   getAllTasks,
   reviewTask,
+  deleteTask,
 } = require("../controllers/workController");
 const { protect, authorize } = require("../middleware/auth");
 const uploadProof = require("../middleware/upload");
@@ -40,5 +41,6 @@ router.post("/:id/resubmit", uploadProof, resubmitTask);
 router.post("/assign", authorize("admin", "manager_operations"), assignTask);
 router.get("/", authorize("admin", "manager_operations"), getAllTasks);
 router.put("/:id/review", authorize("admin", "manager_operations"), reviewTask);
+router.delete("/:id", authorize("admin", "manager_operations"), deleteTask);
 
 module.exports = router;
